@@ -32,7 +32,17 @@ strong {
   background: var(--color-bg);
 }
 
+.reveal .slides > section {
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  top: 0 !important;
+  margin-top: 30px !important;
+  transform: none !important;
+}
+
 .reveal {
+  font-size: 180%;
+  /* scales everything proportionally */
 
   h1,
   h2,
