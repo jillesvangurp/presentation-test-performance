@@ -1,0 +1,123 @@
+:root {
+  --color-bg: #0d0d0f;
+  /* dark background */
+  --color-fg: #f4f4f4;
+  /* main text color */
+  --color-accent: #00ff6a;
+  /* bright green highlight */
+  --color-muted: #9ca3af;
+  /* gray secondary text */
+  --color-link: #00ff6a;
+  /* links = green */
+
+  --r-background-color: var(--color-bg);
+  --r-main-color: var(--color-fg);
+  --r-link-color: var(--color-link);
+  --r-link-color-dark: var(--color-accent);
+  --r-selection-background-color: var(--color-accent);
+  --r-selection-color: #000;
+  --r-heading-color: var(--color-fg);
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  color: var(--color-fg);
+}
+
+strong {
+  color: var(--color-accent);
+}
+
+.reveal-viewport {
+  background: var(--color-bg);
+}
+
+.reveal {
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-accent);
+  }
+
+  h1 {
+    font-size: 3.5rem;
+  }
+
+  h2 {
+    font-size: 2.5rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+  }
+
+  h4 {
+    font-size: 1.2rem;
+  }
+
+
+  a {
+    color: var(--color-link);
+    font-weight: 600;
+  }
+
+  a:hover {
+    color: #66ffb3;
+    /* softer hover */
+  }
+
+  .progress span {
+    background: var(--color-accent);
+  }
+
+  .controls button {
+    color: var(--color-accent);
+  }
+}
+
+
+/* header & footer always visible */
+.slide-header,
+.slide-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  /* above slides but below menus */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-accent);
+}
+
+.slide-header {
+  top: 0;
+  height: 48px;
+}
+
+.slide-header .logo {
+  height: 28px;
+  object-fit: contain;
+}
+
+.slide-footer {
+  bottom: 0;
+  height: 32px;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--color-accent);
+}
+
+/* hide arrow controls */
+.reveal .controls {
+  display: none !important;
+}
+
+.reveal .slide-number {
+  display: none !important;
+}
