@@ -1,0 +1,13 @@
+%%{init: {"theme": "dark"}}%%
+graph TD
+    A["Spring Boot Backend<br/>Flux / coroutines"]
+    C["Redis<br/>(transient state)"]
+    D["Postgres<br/>(CRUD)"]
+    E["Elasticsearch<br/>(search & aggregations)"]
+    F["Kotlin-JS / Fritz2 Frontend"]
+    G["Multiplatform API Client<br/>(shared with tests)"]
+
+    F --> G --> A
+    A --> C
+    A --> D
+    A --> E

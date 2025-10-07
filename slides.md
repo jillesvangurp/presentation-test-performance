@@ -73,10 +73,10 @@
 ## Goal
 
 - Tests run fast
-  - 89 unit tests & 283 integration tests
-  - ~23 seconds
-- Use available CPUs (Macbook Pro M4 Max, 48GB)
-  - Lots of cores & threads
+  - 89 unit tests & 284 integration tests
+  - **~23** seconds (excluding compilation)
+- Use available CPU (Macbook Pro M4 Max, 48GB)
+  - 14 CPU cores & threads
 
 ![Speedy Tests](speedy-tests.webp)
 <!-- .element: style="display:block; margin: 1em auto; width:80%;" -->
@@ -172,10 +172,7 @@
 
 ## About our backend
 
-- Kotlin/spring boot
-- FLUX & Co-routines - async IO, (mostly) single threaded
-- Redis (transient state), Postgres (crud), Elasticsearch (search and aggregations)
-- Kotlin-js frontend, multiplatform API Client that is also used in tests
+<img src="arch.svg" alt="Enrichment flow" style="width:80%;margin:auto;">
 
 ---
 
