@@ -162,11 +162,76 @@
 <!-- .slide: class="title-slide" -->
 ## Parallizing your tests
 
+- An M4 Max has 14 CPU cores
+- Why use only 1 of them when you run tests
+- Integration tests are IO constrained
 - ⚙️ JUnit Parallel Options
-- What can go wrong?
-- 🧼 Avoiding the Need for Cleanup
-- 🎲 Randomize Test Data
-- ⏱️ Poll, Don’t Sleep
+- 💥 What can possibly go wrong?
+
+---
+
+## About our backend
+
+- Kotlin/spring boot
+- FLUX & Co-routines - async IO, (mostly) single threaded
+- Redis (transient state), Postgres (crud), Elasticsearch (search and aggregations)
+- Kotlin-js frontend, multiplatform API Client that is also used in tests
+
+---
+
+## What does it do
+
+- users & teams
+- tracked assets (objects)
+- map markers
+- Async Search indexing pipeline
+  - Search is a critical part of our stack
+
+<img src="enrich.svg" alt="Enrichment flow" style="width:80%;margin:auto;">
+
+---
+## A typical scenario test
+
+- **Given** a team and some users and some map objects
+- **When** Do some REST calls
+- **Wait** for things to happen in Redis/Elasticsearch
+- **Assert** Stuff
+
+```kotlin [3-7]
+    @Test
+    fun `should lookup by specific id`() = runTest {
+        val team = createTeam()
+        val adminClient = team.admin.client
+        val externalId = randomExternalId()
+        val macAddress = randomMacAddress()
+
+        val objId = adminClient.updateOrCreateExternalObjects(
+            groupId = team.groupId,
+            updates =
+                listOf(
+                    ExternalObjectUpdate(
+                        externalId = externalId,
+                        updatePointLocation = UpdatePointLocation(position = randomLatLon()),
+                        assetInformation = AssetInformation(
+                            displayName = "My Original Tracked Object",
+                            specificIds = listOf(
+                                SpecificId("name", macAddress, IdType.MAC)
+                            )
+                        )
+                    ),
+                ),
+        )
+            .shouldBeSuccess().entries.first().value
+
+        eventuallyWithTimeout {
+            adminClient.lookupCode(team.groupId, macAddress) shouldBeSuccess {
+                it.shouldBeInstanceOf<CodeLookupResult.GeoObject> { obj ->
+                    obj.result.id shouldBe objId
+                }
+            }
+        }
+    }
+```
 
 ---
 
@@ -295,6 +360,25 @@ tasks.withType<Test> {
 }
 
 ---
+## Base class for tests
+
+```kotlin [3-6]
+@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@TestInstance(
+    TestInstance.Lifecycle.PER_CLASS
+) // needed so we can have @BeforeAll on non static functions
+@Execution(ExecutionMode.CONCURRENT)
+@Tag("integration-test")
+abstract class APITest : ClientCreator {
+...
+```
+
+- Run Concurrent
+- Every test class gets scheduled on its own thread
+
+---
+
 
 ## ⚠️ Potential Problems
 
@@ -317,6 +401,19 @@ tasks.withType<Test> {
 - 🧩 **Fix flakiness first** — race-free, thread-safe, deterministic tests
 
 ---
+
+- junit
+- kotest assertions
+  - Nice idomatic kotlin assertions
+    - `(40 + 2) shouldBe 42`
+  - Support for async stuff
+    - `eventually {...}` Runs until it passes
+  - Some syntactic sugar
+
+---
+
+## Example test
+
 
 ---
 

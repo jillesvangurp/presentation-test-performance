@@ -1,0 +1,4 @@
+flowchart LR
+  A[object CRUD] --> B[Redis Queue]
+  B --> C[Enrich Service]
+  C --> D[Elasticsearch]

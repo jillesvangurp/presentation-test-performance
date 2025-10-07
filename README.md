@@ -39,3 +39,11 @@ formation-deck/
     logo.svg
     screenshot.jpg
 ```
+
+## Misc
+
+Creating mermaid diagrams (plugin is terrible):
+
+```bash
+bunx @mermaid-js/mermaid-cli -i enrich.mmd -o enrich.svg -t dark -b transparent
+```
