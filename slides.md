@@ -144,29 +144,48 @@
 - End to end testing your system from the outside.
 - As close to the **"real" system** as you can get away with
 - Fake/mock as little as possible
-- Touch as much of your system as you can
-- Don't waste a good scenario
+- Touch as much of your system as you can.
+- Don't waste a good scenario - add more to it.
 - It's all about testing **side effects**, triggering **feature interactions**, and the **unexpected stuff** that happens in the real world.
 
 ---
 
-## Half-assed integration tests
+## From Unit to Integration test
 
-- Not quite a unit and integration test
-- **Pick one** and don't try to do both
-- **Half assed integration test**: not realistic, still slow, poor coverage: **worst of both worlds**. A bad compromise.
+### Pure Unit test
 
-> Jilles says: anything between a unit and integration test is a **waste of time**. You are not testing all permutations and your tests aren't very realistic.
+Logic test, mock test,
+
+### ~~Somewhere in between~~ Half-assed integration test
+
+Whitebox test, database testing with sqlite, using fakes, ...
+
+### 'Pure' Integration test
+
+BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test, Contract Test, Smoke Test, Chaos Test, Compliance Test, ...
+
+---
+
+## Half-assed tests
+
+- All the downsides of integration testing without most of the upsides
+- Coverage is an illusion (permutations of inputs is like integration test)
+- Still slow and costly
+- But maybe less costly than a full integration test
+- A full integration test is what you want.
+
+### If only we could integration test faster?! ....
 
 ---
 <!-- .slide: class="title-slide" -->
 ## Parallizing your tests
 
-- An M4 Max has 14 CPU cores
-- Why use only 1 of them when you run tests
-- Integration tests are IO constrained
-- ⚙️ JUnit Parallel Options
-- 💥 What can possibly go wrong?
+- A M4 Max has 14 CPU cores
+- Why use only 1 core when you run tests? You could be **14x** as fast.
+- Integration tests are IO constrained and spend a lot of time idling/waiting.
+- JUnit Parallel Options
+
+### What could possibly go wrong?
 
 ---
 
@@ -178,15 +197,32 @@
 
 ## What does it do
 
-- users & teams
-- tracked assets (objects)
-- map markers
+- Users & Teams
+- Map Marker CRUD
+- Asset Tracking
+- ...
 - Async Search indexing pipeline
   - Search is a critical part of our stack
 
 <img src="enrich.svg" alt="Enrichment flow" style="width:80%;margin:auto;">
 
 ---
+
+## Our Test Setup
+
+- **Spring Boot** test context with API server & some test beans
+- **Docker Compose** for Elasticsearch, Valkey, and Postgres
+  - Compose for gradle plugin
+- Simple Kotlin tests
+  - **junit 6**
+  - kotest-assertions
+    - Nice idomatic kotlin assertions
+      - `(40 + 2) shouldBe 42`
+    - Support for async stuff
+      - `eventually {...}` Runs until it passes
+
+---
+
 ## A typical scenario test
 
 - **Given** a team and some users and some map objects
@@ -194,10 +230,11 @@
 - **Wait** for things to happen in Redis/Elasticsearch
 - **Assert** Stuff
 
-```kotlin [3-7]
+```kotlin [3-7|8-24|26-32]
     @Test
     fun `should lookup by specific id`() = runTest {
         val team = createTeam()
+
         val adminClient = team.admin.client
         val externalId = randomExternalId()
         val macAddress = randomMacAddress()
@@ -210,15 +247,14 @@
                         externalId = externalId,
                         updatePointLocation = UpdatePointLocation(position = randomLatLon()),
                         assetInformation = AssetInformation(
-                            displayName = "My Original Tracked Object",
+                            displayName = "My Tracked Object",
                             specificIds = listOf(
                                 SpecificId("name", macAddress, IdType.MAC)
                             )
                         )
                     ),
                 ),
-        )
-            .shouldBeSuccess().entries.first().value
+        ).shouldBeSuccess().entries.first().value
 
         eventuallyWithTimeout {
             adminClient.lookupCode(team.groupId, macAddress) shouldBeSuccess {
@@ -229,6 +265,19 @@
         }
     }
 ```
+
+---
+
+## Let's make this go voom!
+
+- We have 284 tess
+- 5-20 REST requests per test
+- Elasticsearch, Redis, DB
+- Requests 10-100 ms
+- + wait/poll time in tests
+- How to get this running in **23 seconds**?
+
+> Keep those cores busy!
 
 ---
 
@@ -359,12 +408,13 @@ tasks.withType<Test> {
 ---
 ## Base class for tests
 
-```kotlin [3-6]
+```kotlin [4-8]
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+// needed so we can have @BeforeAll on non static functions
 @TestInstance(
     TestInstance.Lifecycle.PER_CLASS
-) // needed so we can have @BeforeAll on non static functions
+)
 @Execution(ExecutionMode.CONCURRENT)
 @Tag("integration-test")
 abstract class APITest : ClientCreator {
@@ -373,9 +423,14 @@ abstract class APITest : ClientCreator {
 
 - Run Concurrent
 - Every test class gets scheduled on its own thread
+- Tag as integration test so we can run the unit tests really fast!
+
+```bash
+./gradlew  check -DexcludeTags=integration-test
+
+```
 
 ---
-
 
 ## ⚠️ Potential Problems
 
@@ -390,27 +445,155 @@ abstract class APITest : ClientCreator {
 
 ---
 
-## How to Address
+## A simple guide to parallel testing
 
-- 🎲 **Randomize test data** — avoid cleanup; unique IDs prevent collisions
-- 🗃️ **Shared DB schema** — reuse tables; no reset between tests
-- 🔄 **Poll, don’t sleep** — wait for conditions instead of fixed delays
-- 🧩 **Fix flakiness first** — race-free, thread-safe, deterministic tests
+- 🎲 **Randomize test data** Unique IDs prevent collisions
+- 🚫 **No Cleaning** Don’t clean between tests
+- 🔄 **Poll, don’t sleep** Check until stuff passes, instead of sleeping.
+- 🧩 **Embrace Flakiness** These are the bugs you want to find. Deflakification makes your system better.
+- 💡**DRY Tests** Don't Repeat Yourself. Avoid copy paste. Invest time in writing shorter tests.
+
+> This works on any kind of backend system.
+---
+
+## Randomizing Test data
+
+- Kotlin's random
+- A few simple functions like `randomLocation()`, `randomExternalId()`, etc.
+- inbot-testfixtures
+  - Really old library that I haven't touched in 7 years (still in Java :-( )
+  - `val person = RandomNameGenerator(seed).`
+
+> Bottom line: no hard coded strings == no test colissions
+
+```kotlin
+    suspend fun createTeam(
+        numberOfMembers: Int = 1,
+        teamName: String =
+            randomNameGenerator.nextPerson().domainName.replace("[.][^.]+$".toRegex(), ""),
+        addTrackerUser: Boolean = false,
+        formationAdminTeam: Boolean = false,
+        vararg groupFeatureFlags: GroupFeatureFlags,
+    ) =
+        teamAndClientCreator.createTeam(
+            numberOfMembers,
+            teamName,
+            addTrackerUser,
+            formationAdminTeam,
+            groupFeatureFlags = groupFeatureFlags
+        )
+
+```
+
+## No cleaning between tests
+
+- **Why** There's always other tests running
+- **Speed** Cleaning is slow. Not cleaning is faster.
+- **Realism** Real users won't be using an empty database by themselves either
+- **Easy** Just skip it. You don't have to do anything for that
+
+> Clean at the beginning and reinitialize your db & schema.
 
 ---
 
-- junit
-- kotest assertions
-  - Nice idomatic kotlin assertions
-    - `(40 + 2) shouldBe 42`
-  - Support for async stuff
-    - `eventually {...}` Runs until it passes
-  - Some syntactic sugar
+## Polling with eventually
+
+```kotlin [1-6|21-22|23-50|52-52]
+eventuallyWithTimeout {
+    adminClient.lookupCode(team.groupId, macAddress) shouldBeSuccess {
+        it.shouldBeInstanceOf<CodeLookupResult.GeoObject> { obj ->
+            obj.result.id shouldBe objId
+        }
+    }
+}
+
+...
+
+suspend fun <T> eventuallyWithTimeout(
+    wait: Duration = 1.minutes,
+    message: String? = null,
+    log: Boolean = false,
+    block: suspend () -> T,
+): T {
+    eventuallyWaiting.incrementAndGet()
+    try {
+        var retryCounterLocal = 0
+        return measureTimedValue {
+                eventually(
+                    eventuallyConfig {
+                        this.duration = wait
+                        if (eventuallyWaiting.get() > 5) {
+                            this.initialDelay = 1.seconds
+                        } else this.initialDelay = Duration.ZERO
+
+                        // back off the longer it takes
+                        this.intervalFn = DurationFn { count ->
+                            eventuallyTotalRetryCount.incrementAndGet()
+                            retryCounterLocal++
+
+                            val d =
+                                when {
+                                    count < 2 -> 0.1.seconds
+                                    count < 5 -> 0.3.seconds
+                                    count < 15 -> 0.6.seconds
+                                    // by this time, we are several seconds in so slow down until
+                                    // enrichment catches up
+                                    else -> 2.seconds
+                                }
+
+                            d.also {
+                                if(log) {
+                                    logger.info {
+                                        "retry $count${message?.let { ". $it" } ?: ""}. next wait $it, total waiting: $eventuallyWaiting"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    block
+                )
+            }
+            .let { tv ->
+                eventuallyCompletedBlockCount.incrementAndGet()
+                eventurallyTotalSleepMillis.addAndGet(tv.duration.inWholeMilliseconds)
+                if(log) {
+                    logger.info {
+                        "eventually exited after ${tv.duration} and $retryCounterLocal retries. Cumulative sleep time ${eventurallyTotalSleepMillis.get().milliseconds}"
+                    }
+                }
+                tv.value
+            }
+    } finally {
+        eventuallyWaiting.decrementAndGet()
+    }
+}
+```
+---
+## Stats
+
+
+![Speedy Tests](stats.png)
+<!-- .element: style="display:block; margin: 1em auto; width:100%;" -->
+
+---
+## DRY Principle
+
+- Automate repetitive things
+- Like code you copy for every test
+- With integration tests, test setup is most of the work
+  - Remove any excuses
+- Make creating stuff easy
+- Make asserting stuff easy
+- Group things you call together in functions
+- Use Kotlin DSLs
 
 ---
 
-## Example test
+## Effective Testing is a mindset
 
+- Don't accept slow tests, do something about it
+- Remove excuses to test
+- Fast tests is a great excuse to get a nice fast laptop
 
 ---
 
