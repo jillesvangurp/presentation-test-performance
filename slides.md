@@ -16,19 +16,29 @@
 ---
 ### Whoami
 
-- @jillesvangurp, www.jillesvangurp.com, tryformation.com
+- **@jillesvangurp**, www.jillesvangurp.com, tryformation.com
 - CTO of FORMATION Gmbh
   > Maps for Factories & Logistics.
-- Using Java between **1995-2017**, Kotlin **2018-now**:
-- Yes, I'm a bit "senior"
-  > If you are not using Spring with Kotlin, you are doing it wrong!
-
+- Search & Maps, Backend, Full stack Kotlin, ....
+- Using Java between **1995-2017**, Kotlin **2018-now**
+  - Yes, I'm a bit "senior"
+- Dutch. 16 years in Berlin, Finland & Sweden before that.
 
 ---
 
 ## Some OSS stuff I work on
 
 <img src="jilles-github.jpg" alt="Jilles GitHub" style="width:100%; height:auto; display:block; margin:auto;" />
+
+---
+
+<iframe
+  src="https://tryformation.com"
+  style="width: 100%; height: 75vh; border: none;"
+  allowfullscreen
+  loading="lazy">
+</iframe>
+
 ---
 ## Agenda
 
@@ -48,13 +58,12 @@
 
 > Life is too short for slow builds.
 
-
 <section>
   <div style="display: flex; gap: 3em; justify-content: center; align-items: flex-start;">
     <ul>
       <li>Interrupted flow</li>
       <li>Procrastination</li>
-      <li>Time is money</li>
+      <li>Time is $$$</li>
       <li>Context switches</li>
     </ul>
     <ul>
@@ -65,8 +74,6 @@
     </ul>
   </div>
 </section>
-
-
 
 ---
 
@@ -101,6 +108,7 @@
 - [Wikipedia – Integration testing](https://en.wikipedia.org/wiki/Integration_testing)
 - [Atlassian – Types of Software Testing](https://www.atlassian.com/continuous-delivery/software-testing/types-of-software-testing)
 - [Software Testing Fundamentals – Integration Testing](https://softwaretestingfundamentals.com/integration-testing/)
+
 ---
 
 ## Unit vs. Integration Test (1/2)
@@ -270,7 +278,7 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 
 ## Let's make this go voom!
 
-- We have 284 tess
+- We have 284 integration tests
 - 5-20 REST requests per test
 - Elasticsearch, Redis, DB
 - Requests 10-100 ms
@@ -285,7 +293,27 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 
 ### Parallel Test Execution in Gradle
 
-```kotlin [49-55|57-67|69-73]
+```kotlin [1-19|34-57|70-75|77-87]
+configure<ComposeExtension> {
+    buildAdditionalArgs.set(listOf("--force-rm"))
+    stopContainers.set(true)
+    removeContainers.set(true)
+    forceRecreate.set(true)
+    useComposeFiles.set(listOf("docker-compose-test.yml"))
+    // Unique name to avoid conflicts with manual runs
+    setProjectName("apitest")
+
+    listOf("/usr/bin/docker", "/usr/local/bin/docker").firstOrNull {
+        File(it).exists()
+    }?.let { docker ->
+        // works around an issue where the docker
+        // command is not found
+        // falls back to the default, which may work on
+        // some platforms
+        dockerExecutable.set(docker)
+    }
+}
+
 tasks.withType<Test> {
     this.jvmArgs("-XX:MaxMetaspaceSize=512m", "-Xms1024m", "-Xmx1024m")
 //    logger.lifecycle("in CI: '$runningInCi' failFast is enabled")
@@ -408,7 +436,7 @@ tasks.withType<Test> {
 ---
 ## Base class for tests
 
-```kotlin [4-8]
+```kotlin [4-8|14-16]
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 // needed so we can have @BeforeAll on non static functions
@@ -419,8 +447,17 @@ tasks.withType<Test> {
 @Tag("integration-test")
 abstract class APITest : ClientCreator {
 ...
+
+@BeforeAll
+fun before() {
+    runBlocking {
+        testSchemaCreationService.ensureIndicesExist()
+    }
+}
+
 ```
 
+- One shared Spring Context for all tests
 - Run Concurrent
 - Every test class gets scheduled on its own thread
 - Tag as integration test so we can run the unit tests really fast!
@@ -428,6 +465,202 @@ abstract class APITest : ClientCreator {
 ```bash
 ./gradlew  check -DexcludeTags=integration-test
 
+```
+
+---
+
+## DB && Elasticsearch Initialization
+
+```kotlin [14-14|29-31|32-32|34-39|75-77|134-134|168-168|171-180]
+private val logger = KotlinLogging.logger {}
+
+@Component
+class TestSchemaCreationService(
+    private val esProperties: EsProperties,
+    private val docStoreProperties: DocStoreProperties,
+    private val esSchemaService: EsSchemaService,
+    private val searchClient: SearchClient,
+    private val userRepository: UserRepository,
+    //    private val queueSender: RedisQueueSender,
+    private val dbConnectionPool: HikariDataSource,
+    private val queueProperties: QueueProperties
+) {
+    private val mutex = Mutex()
+    private val indicesExist = AtomicBoolean(false)
+
+    private suspend fun ignore404(block: suspend () -> Unit) {
+        try {
+            block.invoke()
+        } catch (e: RestException) {
+            if (e.status != 404) {
+                logger.error(e) { "ignore 404 encountered status ${e.status}" }
+                throw e
+            }
+        }
+    }
+
+    suspend fun ensureIndicesExist() {
+        if (indicesExist.get()) {
+            return
+        } else {
+            mutex.withLock {
+                try {
+                    if (docStoreProperties.enableUserDocStore) {
+                        dbConnectionPool.withTransaction {conn ->
+                            conn.dropDocStoreTable("users")
+                            conn.createDocStoreTable("users")
+                        }
+                    }
+                    if (docStoreProperties.enableGroupDocStore) {
+                        dbConnectionPool.withTransaction {conn ->
+                            conn.dropDocStoreTable("groups")
+                            conn.createDocStoreTable("groups")
+                            conn.dropDocStoreTable("memberships")
+                            conn.createDocStoreTable("memberships")
+                        }
+                    }
+                    if (docStoreProperties.enableCachedResponsesStore) {
+                        dbConnectionPool.withTransaction {conn ->
+                            conn.dropDocStoreTable("cachedresponses")
+                            conn.createDocStoreTable("cachedresponses")
+                        }
+                    }
+                    if (docStoreProperties.enableCachedResponsesStore) {
+                        dbConnectionPool.withTransaction {conn ->
+                            conn.dropDocStoreTable("privateobjects")
+                            conn.createDocStoreTable("privateobjects")
+                        }
+                    }
+                    if (queueProperties.queueType == "postgres") {
+                        dbConnectionPool.withTransaction {conn ->
+                            conn.dropDocStoreTable(Queue.Enrich.tableName)
+                            conn.createDocStoreTable(Queue.Enrich.tableName)
+                        }
+                    }
+
+                    // check again, might have happened already by now on a different thread
+                    // yes, that happened
+                    if (indicesExist.get()) {
+                        return
+                    }
+                    //                    queueSender.deleteForTests()
+                    ignore404 {
+                        if (!docStoreProperties.enableUserDocStore) {
+                            searchClient.getIndexesForAlias(IndexDefinition.users.writeAlias).forEach {
+                                searchClient.deleteIndex(it)
+                            }
+                        }
+                    }
+                    ignore404 {
+                        if (!docStoreProperties.enableGroupDocStore) {
+                            searchClient.getIndexesForAlias(IndexDefinition.groups.writeAlias).forEach {
+                                searchClient.deleteIndex(it)
+                            }
+                        }
+                    }
+                    ignore404 {
+                        if (!docStoreProperties.enableGroupDocStore) {
+                            searchClient.getIndexesForAlias(IndexDefinition.memberships.writeAlias).forEach {
+                                searchClient.deleteIndex(it)
+                            }
+                        }
+                    }
+                    ignore404 {
+                        if (!docStoreProperties.enableCachedResponsesStore) {
+                            searchClient.getIndexesForAlias(IndexDefinition.cachedresponses.writeAlias).forEach {
+                                searchClient.deleteIndex(it)
+                            }
+                        }
+                    }
+                    ignore404 {
+                        if (!docStoreProperties.enablePrivateObjectStore) {
+                            searchClient.getIndexesForAlias(IndexDefinition.privateobjects.writeAlias).forEach {
+                                searchClient.deleteIndex(it)
+                            }
+                        }
+                    }
+
+                    ignore404 {
+                        searchClient.getIndexesForAlias(IndexDefinition.objects.writeAlias).forEach {
+                            searchClient.deleteIndex(it)
+                        }
+                    }
+                    ignore404 {
+                        searchClient.getIndexesForAlias(esProperties.objectEnrichedIndexAlias).forEach {
+                            searchClient.deleteIndex(it)
+                        }
+                    }
+                    ignore404 {
+                        searchClient.getIndexesForAlias(esProperties.userObjectsEnrichedIndexAlias).forEach {
+                            searchClient.deleteIndex(it)
+                        }
+                    }
+                    ignore404 {
+                        searchClient.getIndexesForAlias(IndexDefinition.analytics.writeAlias).forEach {
+                            searchClient.deleteIndex(it)
+                        }
+                    }
+
+                    logger.info { "old indices are gone" }
+
+                    // create the indices
+                    if (!docStoreProperties.enableUserDocStore) {
+                        esSchemaService.migrateUsersIndex()
+                    }
+                    if (!docStoreProperties.enableGroupDocStore) {
+                        esSchemaService.createGroupsIndex()
+                        esSchemaService.createMembershipsIndex()
+                    }
+                    if (!docStoreProperties.enableCachedResponsesStore) {
+                        esSchemaService.createCachedResponsesIndex()
+                    }
+                    if (!docStoreProperties.enablePrivateObjectStore) {
+                        esSchemaService.createPrivateObjectsIndex()
+                    }
+
+                    esSchemaService.createAnalyticsIndex()
+                    esSchemaService.createObjectsIndex()
+
+                    esSchemaService.createEnrichedObjectsIndex(
+                        esProperties.objectEnrichedIndexAlias
+                    )
+                    esSchemaService.createEnrichedObjectsIndex(
+                        esProperties.userObjectsEnrichedIndexAlias
+                    )
+
+                    searchClient.updateAliases {
+                        add {
+                            alias = esProperties.enrichedIndexAlias
+                            index = esProperties.objectEnrichedIndexAlias
+                        }
+                        add {
+                            alias = esProperties.enrichedIndexAlias
+                            index = esProperties.userObjectsEnrichedIndexAlias
+                        }
+                    }
+
+                    indicesExist.set(true)
+                    logger.info { "created indices" }
+
+                    userRepository.create(
+                        User(
+                            userId = HashUtils.sha1("jilles"),
+                            emailAddresses = listOf("jvg@tryformation.com"),
+                            firstName = "Jilles",
+                            lastName = "van Gurp",
+                            bcryptPassword =
+                                "1000:ca832812f162d2f772dd24de21d71d70569f9268f65b2016:4df5b5ecba97e00353af2d7f6249233d29ac1fc5091dfa09",
+                            roles = listOf(adminRole.name)
+                        )
+                    )
+                    logger.info { "created admin user" }
+                } catch (e: Exception) {
+                    logger.error(e) { "fatal exception trying to recreate indices: ${e.message}" }
+                }
+            }
+        }
+    }
+}
 ```
 
 ---
@@ -456,34 +689,265 @@ abstract class APITest : ClientCreator {
 > This works on any kind of backend system.
 ---
 
-## Randomizing Test data
+## Avoiding shared-state collisions.
 
 - Kotlin's random
 - A few simple functions like `randomLocation()`, `randomExternalId()`, etc.
 - inbot-testfixtures
   - Really old library that I haven't touched in 7 years (still in Java :-( )
   - `val person = RandomNameGenerator(seed).`
+- Every test gets its own team and data
+- Ephemeral docker state is wiped after test run
 
 > Bottom line: no hard coded strings == no test colissions
 
-```kotlin
-    suspend fun createTeam(
-        numberOfMembers: Int = 1,
-        teamName: String =
-            randomNameGenerator.nextPerson().domainName.replace("[.][^.]+$".toRegex(), ""),
-        addTrackerUser: Boolean = false,
-        formationAdminTeam: Boolean = false,
-        vararg groupFeatureFlags: GroupFeatureFlags,
-    ) =
-        teamAndClientCreator.createTeam(
-            numberOfMembers,
-            teamName,
-            addTrackerUser,
-            formationAdminTeam,
-            groupFeatureFlags = groupFeatureFlags
-        )
+---
 
+## Some Helpers
+
+```kotlin [1-8|72-72|74-77|199-215]
+suspend fun createTeam(
+    numberOfMembers: Int = 1,
+    teamName: String =
+        randomNameGenerator.nextPerson().domainName.replace("[.][^.]+$".toRegex(), ""),
+    addTrackerUser: Boolean = false,
+    formationAdminTeam: Boolean = false,
+    vararg groupFeatureFlags: GroupFeatureFlags
+): TestTeam {
+    val groupId =
+        if (formationAdminTeam) {
+                adminClient.restCreateFormationAdminGroup(name = teamName) shouldBeSuccess {}
+            } else {
+                adminClient.restCreateNewGroup(name = teamName) shouldBeSuccess {}
+            }
+            .groupId
+    val groupOwner = testUsers.createNormalUser()
+    adminClient.restAddUserToGroup(
+        userId = groupOwner.profile.userId,
+        groupId = groupId,
+        roles = listOf("group_owner")
+    ) shouldBeSuccess {}
+    val groupAdmin = testUsers.createNormalUser()
+    adminClient.restAddUserToGroup(
+        userId = groupAdmin.profile.userId,
+        groupId = groupId,
+        roles = listOf("group_admin")
+    ) shouldBeSuccess {}
+    val groupMembers =
+        List(numberOfMembers) {
+                testUsers.createNormalUser().also { member ->
+                    adminClient.restAddUserToGroup(
+                        userId = member.profile.userId,
+                        groupId = groupId,
+                        roles = listOf("group_member")
+                    ) shouldBeSuccess {}
+                }
+            }
+            .toMutableList()
+    groupFeatureFlags.forEach { flag ->
+        adminClient.restSetGroupFeatureFlag(groupId, flag,true).shouldBeSuccess()
+    }
+    val trackerUser = if (addTrackerUser) {
+        val trackerUser = testUsers.createNormalUser(firstName = "Tracker").also { member ->
+            adminClient.restAddUserToGroup(
+                userId = member.profile.userId,
+                groupId = groupId,
+                roles = listOf("tracker")
+            ) shouldBeSuccess {}
+        }
+        groupMembers.add(
+            trackerUser
+        )
+        trackerUser
+    } else {
+        null
+    }
+    return TestTeam(
+        name = teamName,
+        groupId = groupId,
+        members = groupMembers,
+        owner = groupOwner,
+        admin = groupAdmin,
+        internalAdminClient = adminClient,
+        serverPort = serverPort,
+        trackerUser = trackerUser,
+        micrometerMeterRegistry = micrometerMeterRegistry
+    )
+}
+
+
+
+fun randomExternalId(prefix: String = "external") = "$prefix-${UUID.randomUUID()}"
+
+fun randomMacAddress(): String {
+    return List(6) { Random.nextInt(0, 256) }
+        .joinToString(":") { "%02X".format(it) }
+}
+
+fun Bbox.randomLocation(): DoubleArray {
+    //    println("$topLeft $bottomRight")
+
+    val lon = Random.nextDouble(topLeft.lon, bottomRight.lon)
+    val lat = Random.nextDouble(bottomRight.lat, topLeft.lat)
+    return doubleArrayOf(lon, lat)
+}
+
+fun randomLocation(near: PointCoordinates = doubleArrayOf(13.0,52.0)) =
+    doubleArrayOf(
+        Random.nextDouble(near.longitude-0.5,near.longitude+0.5),
+        Random.nextDouble(near.latitude-0.5,near.latitude+0.5)
+    )
+fun randomLatLon(near: LatLon = LatLon(52.0,13.0)) = randomLocation(near.pointCoordinates()).toLatLon()
+
+val wattStrasse11 = LatLon(lat = 52.541187165588674, lon = 13.390887885111196)
+
+fun randomBuildingAndFloor(numberOfFloors: Int=1, near: LatLon = LatLon(52.0,13.0)): NewBuilding {
+    val bbox = randomLatLon(near).bboxFromTopLeft()
+    val buildingExtId = randomExternalId("building")
+    val floors = (0..<numberOfFloors).map { floorLevel ->
+        val floorExtId = randomExternalId("floor")
+        NewFloor.ImageFloor(
+            title = "Floor $floorLevel - $floorExtId",
+            level = floorLevel.toDouble(),
+            imageUrl = "http://domain.com/floor.png",
+            topLeft = bbox.topLeft,
+            bottomLeft = bbox.bottomLeft(),
+            topRight = bbox.topRight(),
+            bottomRight = bbox.bottomRight,
+            externalId = floorExtId,
+        )
+    }
+    return NewBuilding(
+        title = buildingExtId,
+        externalId = buildingExtId,
+        floors = floors
+    )
+}
+
+fun randomZone(
+    title: String = "A Zone",
+    description: String = "no description",
+    externalId: String? = null
+) =
+    randomLocation()
+        .let { GeoGeometry.circle2polygon(20, it[1], it[0], Random.nextDouble(1.0, 20.0)) }
+        .let { Geometry.Polygon(it) }
+        .let { DEFAULT_JSON.encodeToString(Geometry.serializer(), it) }
+        .let { geo ->
+            Zone(
+                geometryString = geo,
+                title = title,
+                description = description,
+                externalId = externalId,
+            )
+        }
+
+fun BoundingBox.toBbox() =
+    Bbox(
+        LatLon(this.northLatitude, this.westLongitude),
+        LatLon(this.southLatitude, this.eastLongitude),
+    )
+
+fun LatLon.translate(northMeters: Int, eastMeters: Int) =
+    GeoGeometry.translate(this.lat, this.lon, northMeters.toDouble(), eastMeters.toDouble()).let {
+        LatLon(lat = it[1], lon = it[0])
+    }
+
+fun Bbox.randomBbox(height: Int = 10, width: Int = 5): Bbox {
+    val p = this.randomLocation().toLatLon()
+    return Bbox(p, p.translate(height, width))
+}
+
+fun Bbox.randomBuilding(floors: Int = 1): NewBuilding {
+    val buildingBox = this.randomBbox()
+    val floors =
+        (0 until floors).map {
+            NewFloor.ImageFloor(
+                "floor $it",
+                it.toDouble(),
+                "https://domain.com/pic$it.png",
+                topLeft = buildingBox.topLeft,
+                topRight = buildingBox.topRight(),
+                bottomLeft = buildingBox.bottomLeft(),
+                bottomRight = buildingBox.bottomRight,
+            )
+        }
+
+    return NewBuilding("aBuilding", floors)
+}
+
+
+suspend fun TestTeam.createMeetings(
+    amount: Int,
+    inside: Bbox,
+    connectedToId: String? = null,
+    prefix: String = "event",
+    owner: TestUser = this.owner,
+    attendees: List<TestUser>? = null,
+    keywords: List<String>? = null,
+): List<GeoObjectDetails> {
+    val newEvents =
+        (0 until amount).map {
+            val invitations =
+                (attendees ?: (0..Random.nextInt(members.size)).map { i -> members[i] })
+                    .map { it.id }
+                    .map { userId -> EventInvitation(userId, Random.nextBoolean()) }
+            NewEvent(
+                "$prefix $it",
+                attendees = invitations,
+                latLon = inside.randomLocation().toLatLon(),
+                connectedToId = connectedToId,
+                keywords = keywords,
+            )
+        }
+    return owner.client.createEvents(groupId, newEvents).shouldBeSuccess()
+}
+
+
+suspend fun TestTeam.createToilets(
+    amount: Int,
+    inside: Bbox,
+    connectedToId: String? = null,
+    prefix: String = "toilet",
+): List<GeoObjectDetails> {
+    val pois =
+        (0 until amount).map { i ->
+            NewPoi(
+                inside.randomLocation().toLatLon(),
+                title = "$prefix $i",
+                keywords = listOf("toilet"),
+                connectedToId = connectedToId,
+            )
+        }
+    return owner.client.createPOIs(groupId, pois).shouldBeSuccess()
+}
+
+suspend fun TestTeam.createPois(
+    amount: Int,
+    inside: Bbox,
+    connectedToId: String? = null,
+    prefix: String = "point",
+    keywords: List<String>? = null,
+): List<GeoObjectDetails> {
+    return coroutineScope {
+        (0 until amount)
+            .map {
+                NewPoi(
+                    latLon = inside.randomLocation().toLatLon(),
+                    title = "$prefix $it",
+                    connectedToId = connectedToId,
+                    keywords = keywords,
+                )
+            }
+            .let { newPOIs -> owner.client.createPOIs(groupId, newPOIs).shouldBeSuccess() }
+    }
+}
+
+fun TagList.dump() {
+    println("Tags:\n${this.joinToString("\n")}")
+}
 ```
+---
 
 ## No cleaning between tests
 
@@ -497,6 +961,8 @@ abstract class APITest : ClientCreator {
 ---
 
 ## Polling with eventually
+
+- [kotest-assertions]()
 
 ```kotlin [1-6|21-22|23-50|52-52]
 eventuallyWithTimeout {
@@ -568,20 +1034,86 @@ suspend fun <T> eventuallyWithTimeout(
     }
 }
 ```
----
-## Stats
 
+---
+
+## Eventually stats
 
 ![Speedy Tests](stats.png)
 <!-- .element: style="display:block; margin: 1em auto; width:100%;" -->
 
 ---
-## DRY Principle
+
+## 'fixing' CI performance as well
+
+- 1500 free build minutes per month
+- Our monthly CI bill: **0$** + a few vm minutes
+
+```yaml [26-49|52-52|53-56]
+name: 'Process Pull Request'
+on:
+  pull_request:
+    branches:
+    - 'master'
+jobs:
+  build-and-test:
+    name: 'Build And Test'
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 30
+    steps:
+    - id: 'step-0'
+      name: 'print env'
+      run: |-
+        env
+        echo "github.event.pull_request.base.ref ${{ github.event.pull_request.base.ref }}"
+        echo "github.event.pull_request.head.ref ${{ github.event.pull_request.head.ref }}"
+    - id: 'step-1'
+      name: 'setup cloud sdk'
+      uses: 'google-github-actions/setup-gcloud@v2'
+    - id: 'step-2'
+      name: 'gcloud auth'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GOOGLE_CLOUD_KEY }}'
+    - id: 'step-3'
+      name: 'start ci server'
+      run: |
+        gcloud compute instances start ci-build-machine --zone "us-central1-a" --project "formation-graphqlapi"
+
+        max_attempts=20
+        attempt_counter=0
+        sleep_duration=2
+
+        while [ $attempt_counter -lt $max_attempts ]; do
+            echo "Checking if VM is running (Attempt: $((attempt_counter+1))/$max_attempts)"
+            status=$(gcloud compute instances describe --zone "us-central1-a" "ci-build-machine" --project "formation-graphqlapi" | grep "status: RUNNING")
+
+            if [[ $status == *"status: RUNNING"* ]]; then
+                echo "VM is up and running!"
+                exit 0
+            fi
+
+            attempt_counter=$((attempt_counter+1))
+            sleep $sleep_duration
+        done
+
+        echo "VM did not start after $max_attempts attempts."
+        exit 1
+    - id: 'step-4'
+      name: 'run remote tests'
+      run: 'gcloud compute ssh --zone "us-central1-a" "ci@ci-build-machine" --project "formation-graphqlapi" --command "/home/ci/run-test.sh ${{ github.event.pull_request.head.ref }}"'
+    - id: 'step-5'
+      name: 'stop ci server'
+      run: 'gcloud compute instances stop ci-build-machine --zone "us-central1-a" --project "formation-graphqlapi"                '
+      if: 'always()'
+```
+
+---
+## Making testing easy
 
 - Automate repetitive things
-- Like code you copy for every test
+- Developer experience for using your API
 - With integration tests, test setup is most of the work
-  - Remove any excuses
 - Make creating stuff easy
 - Make asserting stuff easy
 - Group things you call together in functions
@@ -594,21 +1126,54 @@ suspend fun <T> eventuallyWithTimeout(
 - Don't accept slow tests, do something about it
 - Remove excuses to test
 - Fast tests is a great excuse to get a nice fast laptop
+- Time is money. **Your time** is your money. You could be doing more fun things than watching paint dry.
+- Flow state is hard to achieve and easy to lose.
+
+---
+
+## Why does this work?
+
+- I/O-bound != CPU-bound: Even when each test “feels” heavy, most of the time is network or disk latency.
+- Parallelism hides latency: Dozens of blocked coroutines free CPU time for others.
+- Use idle time to run other tests.
+- Modern hardware is fast
+
+## Limitations / Challenges
+
+- Not everyone has a fast laptop
+- CI on the cheap means dealing with slooooow vms
+- Randomization can also mean hard to reproduce failures
+- Legacy tests can be a blocker
+- Test order, number of CPUs, etc. can make seemingly stable tests flaky suddenly
+- Junit caps number of threads :-( to number of CPU cores
+- You need to keep CPU available for your DB, Elasticsearch, and API server
 
 ---
 
 ### Benefits
 
-- ⚡ **Fast tests!** — massive time savings and faster feedback loops
+- ⚡ **Fast tests!** — Integration test at the speed of unit testing (almost).
+- 🧠 **Naturally multiuser** — Your real users don't use in isolation either.
 - 🤝 **Realistic concurrency** — simulates real-world multi-user load
-- 🔍 **Performance visibility** — bottlenecks and locking issues surface early
-- 🧠 **Improved confidence** — fewer surprises in production
+- 🔍 **Doubles as stresstest** — bottlenecks and locking issues surface early
 - 🧩 **Better code quality** — forces testable, thread-safe, stateless design
-- 🔁 **Continuous integration friendly** — parallel runs scale well on CI agents
-- 💰 **Lower CI costs** — faster runs = less compute time billed
-- 🧪 **Improved coverage of edge cases** — concurrency often reveals hidden bugs
-- 🧼 **No cleanup overhead** — randomized test data eliminates teardown logic
-- 🧠 **Production parity** — mirrors how your real systems behave under load
+- 💰 **Lower CI costs** — faster runs = less compute time billed (0$/month)
+- 💰 **Zero cost for extra tests** - new tests don't really affect test run time; plenty of idle time left.
+
+---
+
+## Challenges
+
+- Heisenbugs & flakiness
+  - Finding these is why you test. Dealing with them is annoying
+  - Reproducing bugs isn't always easy - but **knowing you have** them is key
+- You need to design and plan for concurrent testing. You won't get it for free.
+- If you have a lot of hardcoded ids, names, etc in your tests:
+  - Removing those is a bit of work
+- Copy/paste reuse makes your tests hard to maintain
+- CI is still slow - we fixed it with a fast vm
+
+### Many solutions to this, these should not stop you
 
 ---
 
@@ -622,6 +1187,3 @@ suspend fun <T> eventuallyWithTimeout(
   - 📦 Kotlin multiplatform libraries
   - ❤️ ... we love Kotlin
 
----
-
-## Thanks
