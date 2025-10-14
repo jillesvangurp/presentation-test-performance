@@ -89,7 +89,7 @@
   - 89 unit tests & 284 integration tests
   - **~23** seconds (excluding compilation)
 - Use available CPU (Macbook Pro M4 Max, 48GB)
-  - 14 CPU cores
+  - 16 CPU cores
 
 ![Speedy Tests](speedy-tests.webp)
 <!-- .element: style="display:block; margin: 1em auto; width:80%;" -->
@@ -99,8 +99,8 @@
 <!-- .slide: class="title-slide" -->
 ## Parallizing your tests
 
-- A M4 Max has 14 CPU cores
-- Why use only 1 core when you run tests? You could be **14x** as fast.
+- A M4 Max has 16 CPU cores
+- Why use only 1 core when you run tests? You could be **16x** as fast.
 - Integration tests are IO constrained and spend a lot of time idling/waiting.
 - JUnit Parallel Options
 
@@ -1154,6 +1154,8 @@ jobs:
 - Parallelism **hides latency**: Blocked coroutines free CPU time for others.
 - **Use idle time** to run other tests.
 - Modern hardware is fast: if your CPU fan is idling, your laptop is **bored**.
+
+![htop](htop.gif)
 
 ---
 
