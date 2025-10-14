@@ -32,13 +32,19 @@
 
 ---
 
-<iframe
-  src="https://tryformation.com"
-  style="width: 100%; height: 75vh; border: none;"
-  allowfullscreen
-  loading="lazy">
-</iframe>
+<section
+  data-background-iframe="https://tryformation.com"
+  data-background-interactive>
+</section>
 
+<!-- <section class="fullwidth">
+    <iframe
+    src="https://tryformation.com"
+    style="width: 100%; height: 75vh; border: none;"
+    allowfullscreen
+    loading="lazy">
+    </iframe>
+</section> -->
 ---
 ## Agenda
 
@@ -83,10 +89,24 @@
   - 89 unit tests & 284 integration tests
   - **~23** seconds (excluding compilation)
 - Use available CPU (Macbook Pro M4 Max, 48GB)
-  - 14 CPU cores & threads
+  - 14 CPU cores
 
 ![Speedy Tests](speedy-tests.webp)
 <!-- .element: style="display:block; margin: 1em auto; width:80%;" -->
+
+---
+
+<!-- .slide: class="title-slide" -->
+## Parallizing your tests
+
+- A M4 Max has 14 CPU cores
+- Why use only 1 core when you run tests? You could be **14x** as fast.
+- Integration tests are IO constrained and spend a lot of time idling/waiting.
+- JUnit Parallel Options
+
+> What could possibly go wrong?
+
+But before we do that a little intro on testing ...
 
 ---
 
@@ -130,7 +150,7 @@
 | **Reliability** | High consistency | Can vary with environment setup |
 | **Maintenance** | Easy and low-cost | Harder and higher-cost |
 | **Typical Tools** | JUnit, Mockito | Spring Boot Test, Testcontainers |
-| **Execution Frequency** | Every build/commit | CI pipeline or nightly runs |
+| **Execution Frequency** | Every build/commit | Pull Request, before deployment |
 | **Failure Cause** | Logic or algorithm bug | Configuration, network, or integration issue |
 
 ---
@@ -141,20 +161,24 @@
 - Unit testing is about test coverage
   - Unit is small enough that you can **test permutations** of input
 - Integration testing is about realism
+  - **Forget about test coverage**
   - The permutations of possible inputs is **not computable**
-  - Next best thing: **test things that users do**
+  - Next best thing: **Realism: test things that actual users do**
 
 ---
 
 ## Scenario tests
 
 - The **most realistic** form of integration testing
-- End to end testing your system from the outside.
+- Scenario reproduces **sequence of events** that happens in your real system
+- **End to end** testing your system **from the outside**.
 - As close to the **"real" system** as you can get away with
-- Fake/mock as little as possible
-- Touch as much of your system as you can.
-- Don't waste a good scenario - add more to it.
-- It's all about testing **side effects**, triggering **feature interactions**, and the **unexpected stuff** that happens in the real world.
+- **Fake/mock as little** as possible
+- **Touch as much** of your system as you can.
+- **Don't waste a good scenario**
+  - add more to them.
+- Test **side effects**, trigger **feature interactions**, and the **unexpected stuff** that happens in the real world.
+- Test **regressions**. Reproduce things that went wrong for customers. And then ensure they stay fixed.
 
 ---
 
@@ -164,40 +188,39 @@
 
 Logic test, mock test,
 
-### ~~Somewhere in between~~ Half-assed integration test
+### ~~Somewhere in between~~ <span style="font-size: 3rem;"> Half-assed integration test</span>
 
 Whitebox test, database testing with sqlite, using fakes, ...
 
-### 'Pure' Integration test
+### 'Pure' Integration tests
 
 BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test, Contract Test, Smoke Test, Chaos Test, Compliance Test, ...
 
 ---
 
-## Half-assed tests
+## Half-assed integration tests
 
 - All the downsides of integration testing without most of the upsides
-- Coverage is an illusion (permutations of inputs is like integration test)
-- Still slow and costly
-- But maybe less costly than a full integration test
-- A full integration test is what you want.
+- **Coverage is an illusion** (permutations of inputs is like integration test)
+- Still **slow and costly**
+  - But maybe less costly than a full integration test
+- Are you being **cheap or frugal**? Why?
+- A **proper integration test** is what you really want
 
-### If only we could integration test faster?! ....
-
----
-<!-- .slide: class="title-slide" -->
-## Parallizing your tests
-
-- A M4 Max has 14 CPU cores
-- Why use only 1 core when you run tests? You could be **14x** as fast.
-- Integration tests are IO constrained and spend a lot of time idling/waiting.
-- JUnit Parallel Options
-
-### What could possibly go wrong?
+> If only we could integration test faster?! Then we could do it properly ....
 
 ---
 
-## About our backend
+## Parallelize integration tests
+
+- What was **expensive becomes cheap**
+- What was **hard becomes easy**
+- No more half-assed integration tests
+- **Maximize value** for the effort
+
+---
+
+## About our system
 
 <img src="arch.svg" alt="Enrichment flow" style="width:80%;margin:auto;">
 
@@ -212,31 +235,32 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 - Async Search indexing pipeline
   - Search is a critical part of our stack
 
-<img src="enrich.svg" alt="Enrichment flow" style="width:80%;margin:auto;">
+<img src="enrich.svg" alt="Enrichment flow" style="width:80%;margin:auto;margin-top:2rem;">
 
 ---
 
 ## Our Test Setup
 
-- **Spring Boot** test context with API server & some test beans
 - **Docker Compose** for Elasticsearch, Valkey, and Postgres
-  - Compose for gradle plugin
+  - Docker Compose for gradle plugin
+- **Spring Boot** test context with API server & some test beans
 - Simple Kotlin tests
   - **junit 6**
-  - kotest-assertions
+  - **kotest-assertions**
     - Nice idomatic kotlin assertions
       - `(40 + 2) shouldBe 42`
     - Support for async stuff
       - `eventually {...}` Runs until it passes
+- Tests do **REST requests** against our server
 
 ---
 
 ## A typical scenario test
 
-- **Given** a team and some users and some map objects
-- **When** Do some REST calls
+- **Given** a team and some users and some map markers
+- **When** Do some REST calls (CRUD, search, etc.)
 - **Wait** for things to happen in Redis/Elasticsearch
-- **Assert** Stuff
+- **Assert** Do some more REST calls to figure out current state
 
 ```kotlin [3-7|8-24|26-32]
     @Test
@@ -276,7 +300,7 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 
 ---
 
-## Let's make this go voom!
+## Let's make this go vroom!
 
 - We have 284 integration tests
 - 5-20 REST requests per test
@@ -337,7 +361,7 @@ tasks.withType<Test> {
         logger.lifecycle("test server isUp: $isUp")
 
         if (!isUp) {
-            println("Docker comppose not up")
+            println("Docker compose not up")
             // if it is not running, use docker compose
             dependsOn("composeUp")
             // this enables us to detect that we want to run es tests
@@ -692,20 +716,21 @@ class TestSchemaCreationService(
 ## Avoiding shared-state collisions.
 
 - Kotlin's random
-- A few simple functions like `randomLocation()`, `randomExternalId()`, etc.
+  - A few simple functions like `randomLocation()`, `randomExternalId()`, etc.
 - inbot-testfixtures
   - Really old library that I haven't touched in 7 years (still in Java :-( )
   - `val person = RandomNameGenerator(seed).`
-- Every test gets its own team and data
-- Ephemeral docker state is wiped after test run
+  - There are many similar libraries.
+- **Every test gets its own team and data**
+- Ephemeral docker state wiped after test run
 
-> Bottom line: no hard coded strings == no test colissions
+> Bottom line: no hard coded strings == no test collissions
 
 ---
 
 ## Some Helpers
 
-```kotlin [1-8|72-72|74-77|199-215]
+```kotlin [1-8|72-72|74-77|79-85|199-215]
 suspend fun createTeam(
     numberOfMembers: Int = 1,
     teamName: String =
@@ -951,12 +976,12 @@ fun TagList.dump() {
 
 ## No cleaning between tests
 
-- **Why** There's always other tests running
-- **Speed** Cleaning is slow. Not cleaning is faster.
+- **Why** Other tests are running
+- **Speed** Cleaning is slow. **Not cleaning is faster**.
 - **Realism** Real users won't be using an empty database by themselves either
 - **Easy** Just skip it. You don't have to do anything for that
 
-> Clean at the beginning and reinitialize your db & schema.
+> Clean at the beginning and reinitialize your db & schema. Docker **ephemeral state** goes away when you shut down the container.
 
 ---
 
@@ -964,7 +989,7 @@ fun TagList.dump() {
 
 - [kotest-assertions]()
 
-```kotlin [1-6|21-22|23-50|52-52]
+```kotlin [1-7|21-22|23-50|52-52|56-57]
 eventuallyWithTimeout {
     adminClient.lookupCode(team.groupId, macAddress) shouldBeSuccess {
         it.shouldBeInstanceOf<CodeLookupResult.GeoObject> { obj ->
@@ -1046,7 +1071,7 @@ suspend fun <T> eventuallyWithTimeout(
 
 ## 'fixing' CI performance as well
 
-- 1500 free build minutes per month
+- Github Actions: **1500 build minutes / month**
 - Our monthly CI bill: **0$** + a few vm minutes
 
 ```yaml [26-49|52-52|53-56]
@@ -1112,45 +1137,39 @@ jobs:
 ## Making testing easy
 
 - Automate repetitive things
-- Developer experience for using your API
+- **API Client**: Developer experience for using your API
 - With integration tests, test setup is most of the work
-- Make creating stuff easy
-- Make asserting stuff easy
-- Group things you call together in functions
-- Use Kotlin DSLs
-
----
-
-## Effective Testing is a mindset
-
-- Don't accept slow tests, do something about it
-- Remove excuses to test
-- Fast tests is a great excuse to get a nice fast laptop
-- Time is money. **Your time** is your money. You could be doing more fun things than watching paint dry.
-- Flow state is hard to achieve and easy to lose.
+  - Make creating stuff easy
+  - Make asserting stuff easy
+  - **DRY** - automate all the routine stuff
+    - Don't just copy paste tests
+- Group things you call together in **functions**
+- Use **Kotlin DSLs**
 
 ---
 
 ## Why does this work?
 
-- I/O-bound != CPU-bound: Even when each test “feels” heavy, most of the time is network or disk latency.
-- Parallelism hides latency: Dozens of blocked coroutines free CPU time for others.
-- Use idle time to run other tests.
-- Modern hardware is fast
-
-## Limitations / Challenges
-
-- Not everyone has a fast laptop
-- CI on the cheap means dealing with slooooow vms
-- Randomization can also mean hard to reproduce failures
-- Legacy tests can be a blocker
-- Test order, number of CPUs, etc. can make seemingly stable tests flaky suddenly
-- Junit caps number of threads :-( to number of CPU cores
-- You need to keep CPU available for your DB, Elasticsearch, and API server
+- **I/O-bound != CPU-bound**: Even when each test “feels” heavy, most of the time is network or disk latency.
+- Parallelism **hides latency**: Blocked coroutines free CPU time for others.
+- **Use idle time** to run other tests.
+- Modern hardware is fast: if your CPU fan is idling, your laptop is **bored**.
 
 ---
 
-### Benefits
+## Limitations
+
+- Not everyone has a fast laptop - been there done that. It sucks.
+- **CI** on the cheap means dealing with slooooow vms. Once our build it 20+ minutes is when I used my own vm.
+- Randomization can also mean **hard to reproduce failures**
+- **Legacy** tests can be a blocker
+- Test order, number of CPUs, etc. can make seemingly stable tests **flaky** suddenly
+- Junit caps number of threads :-( to number of CPU cores
+- You need to **keep some CPU available** for your DB, Elasticsearch, and API server
+
+---
+
+## Benefits
 
 - ⚡ **Fast tests!** — Integration test at the speed of unit testing (almost).
 - 🧠 **Naturally multiuser** — Your real users don't use in isolation either.
@@ -1167,13 +1186,29 @@ jobs:
 - Heisenbugs & flakiness
   - Finding these is why you test. Dealing with them is annoying
   - Reproducing bugs isn't always easy - but **knowing you have** them is key
-- You need to design and plan for concurrent testing. You won't get it for free.
+  - **It get's better** over time.
+- You need to **design and plan** for concurrent testing. You won't get it for free.
 - If you have a lot of hardcoded ids, names, etc in your tests:
   - Removing those is a bit of work
-- Copy/paste reuse makes your tests hard to maintain
-- CI is still slow - we fixed it with a fast vm
+- **Copy/paste reuse** makes your tests hard to maintain
+- CI is still slowish - we fixed it with a fast vm
 
-### Many solutions to this, these should not stop you
+### Many solutions to this, this should not stop you
+
+---
+
+## Effective Testing is a mindset
+
+- **Design your system** to be easy to test. This makes you a better engineer.
+- Don't accept slow tests, **do something** about it
+- Remove excuses to **add tests**
+- Running tests quickly is a great excuse to get a **nice fast laptop**
+  - Think about that the next time you wait for a build to finish.
+- Time is money. **Your time** is your money (or your boss). You could be doing more fun things than watching paint dry.
+- **Flow state** is hard to achieve and easy to lose.
+- M4 Max with 48GB = **105 EURO/Month**. Other laptops are available.
+
+> I run tests about 40 times per day. Now that I can actually do that. This is **priceless**.
 
 ---
 

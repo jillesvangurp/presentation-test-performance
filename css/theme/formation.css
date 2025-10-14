@@ -32,7 +32,7 @@ strong {
   background: var(--color-bg);
 }
 
-.reveal .slides > section {
+.reveal .slides>section {
   justify-content: flex-start !important;
   align-items: flex-start !important;
   top: 0 !important;
@@ -86,6 +86,13 @@ strong {
 
   .controls button {
     color: var(--color-accent);
+  }
+
+  section.fullwidth iframe {
+    width: 100vw !important;
+    height: 75vh !important;
+    max-width: none !important;
+    transform: none !important;
   }
 }
 
