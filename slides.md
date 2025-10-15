@@ -5,7 +5,7 @@
 <!-- .slide: class="title-slide" -->
 
 <section>
-  <div style="display: flex; justify-content: center; align-items: center; gap: 2em;">
+  <div style="display: flex; justify-content: center; align-items: center; gap: 2em; margin-top: 5rem;">
     <img src="yellowmustang.webp" alt="Yellow Mustang" style="height:15vh; object-fit:cover;" />
     <img src="mustang-jilles.png" alt="Mustang Jilles" style="height:15vh; object-fit:cover;" />
   </div>
@@ -54,7 +54,7 @@ loading="lazy">
   - 🧼 Avoiding the Need for Cleanup
   - 🎲 Randomize Test Data
   - ⏱️ Poll, Don’t Sleep
-- 🔁 Recap
+- 🔁 Some closing thoughts
 
 ---
 
@@ -84,10 +84,10 @@ loading="lazy">
 ## Goal
 
 - Tests should run fast
-  - 89 unit tests & 284 integration tests
+  - 89 unit tests & **284** integration tests
   - **~23** seconds (excluding compilation)
 - Use available CPU (Macbook Pro M4 Max, 48GB)
-  - 16 CPU cores
+  - **16 CPU cores**
 
 ![Speedy Tests](speedy-tests.webp)
 <!-- .element: style="display:block; margin: 1em auto; width:80%;" -->
@@ -96,11 +96,11 @@ loading="lazy">
 
 ## Where does all this come from
 
-- I taught a **class on software testing** in 1999 while I was a young research student. This forced me to dive into a lot of theory.
-- In 2014, I spent a lot of time getting a grip on the test suite and backend in my startup. Builds were **flaky and slow** and generally slowing me down.
-- I inherited a messy Ruby codebase where database tests spent **99%** of their time **rebuilding the same DB for every single test function**.
-They used copy-pasted data and IDs, making parallel execution impossible.
-  - That got me thinking about doing something smarter.
+- I taught a **class on software testing** in 1999. This forced me to dive into a lot of theory.
+- 2014: I inherited a messy Ruby codebase where database tests spent **99%** of their time **rebuilding the same DB for every single test function**.
+They used copy-pasted data and IDs ... Completely **stupid and frustrating**.
+  - That got me thinking about **doing something smarter**.
+  - I had **plenty of time to think** waiting for this shit.
 - I wrote about this a few times. [2016 Article](https://www.jillesvangurp.com/blog/2016-05-25-functional-tests-and-flakyness.html), [2021 Article](https://dev.to/jillesvangurp/improving-build-speeds-262a)
 - I've been doing this for ten years now in two companies. Once you learn how to make parallel test work, it becomes **second nature**.
 
@@ -198,7 +198,13 @@ But before we do that a little intro on testing ...
 
 Logic test, mock test,
 
-### ~~Somewhere in between~~ <span style="font-size: 3rem;"> Half-assed integration test</span>
+### ~~Somewhere in between~~ <span style="font-size: 3rem; animation: blink 1s step-start infinite;"> Half-assed integration test</span>
+
+<style>
+@keyframes blink {
+  50% { opacity: 0; }
+}
+</style>
 
 Whitebox test, database testing with sqlite, using fakes, ...
 
@@ -226,10 +232,10 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 
 ## Parallelize integration tests
 
-- What was **expensive becomes cheap**
-- What was **hard becomes easy**
-- No more half-assed integration tests
-- **Maximize value** for the effort
+- What is **expensive becomes cheap**
+- What is **hard becomes easy**
+- *No more half-assed integration tests*
+- **Maximize value** for the test investments
 
 ---
 
@@ -1086,7 +1092,7 @@ suspend fun <T> eventuallyWithTimeout(
 
 ---
 
-## 'fixing' CI performance as well
+## 'fixing' CI performance too
 
 - Github Actions: **1500 build minutes / month**
 - Our monthly CI bill: **0$** + a few vm minutes
