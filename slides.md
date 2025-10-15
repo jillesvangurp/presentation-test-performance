@@ -37,14 +37,12 @@
   data-background-interactive>
 </section>
 
-<!-- <section class="fullwidth">
-    <iframe
-    src="https://tryformation.com"
-    style="width: 100%; height: 75vh; border: none;"
-    allowfullscreen
-    loading="lazy">
-    </iframe>
-</section> -->
+<!-- <iframe
+src="https://tryformation.com"
+style="width: 100%; height: 75vh; border: none;"
+allowfullscreen
+loading="lazy">
+</iframe> -->
 ---
 ## Agenda
 
@@ -85,7 +83,7 @@
 
 ## Goal
 
-- Tests run fast
+- Tests should run fast
   - 89 unit tests & 284 integration tests
   - **~23** seconds (excluding compilation)
 - Use available CPU (Macbook Pro M4 Max, 48GB)
@@ -96,13 +94,25 @@
 
 ---
 
-<!-- .slide: class="title-slide" -->
-## Parallizing your tests
+## Where does all this come from
 
-- A M4 Max has 16 CPU cores
+- I taught a **class on software testing** in 1999 while I was a young research student. This forced me to dive into a lot of theory.
+- In 2014, I spent a lot of time getting a grip on the test suite and backend in my startup. Builds were **flaky and slow** and generally slowing me down.
+- I inherited a messy Ruby codebase where database tests spent **99%** of their time **rebuilding the same DB for every single test function**.
+They used copy-pasted data and IDs, making parallel execution impossible.
+  - That got me thinking about doing something smarter.
+- I wrote about this a few times. [2016 Article](https://www.jillesvangurp.com/blog/2016-05-25-functional-tests-and-flakyness.html), [2021 Article](https://dev.to/jillesvangurp/improving-build-speeds-262a)
+- I've been doing this for ten years now in two companies. Once you learn how to make parallel test work, it becomes **second nature**.
+
+---
+
+<!-- .slide: class="title-slide" -->
+## The general idea ...
+
+- A **M4 Max** has 16 CPU cores
 - Why use only 1 core when you run tests? You could be **16x** as fast.
-- Integration tests are IO constrained and spend a lot of time idling/waiting.
-- JUnit Parallel Options
+- Integration tests are IO constrained and spend a lot of time **idling/waiting**.
+- **JUnit Parallel Options**
 
 > What could possibly go wrong?
 
@@ -200,12 +210,15 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 
 ## Half-assed integration tests
 
-- All the downsides of integration testing without most of the upsides
 - **Coverage is an illusion** (permutations of inputs is like integration test)
 - Still **slow and costly**
   - But maybe less costly than a full integration test
+- Means you are **testing in production** when you run with the non faked components.
+  - Or you do double work by running expensive end to end tests that overlap with your half-assed tests
 - Are you being **cheap or frugal**? Why?
 - A **proper integration test** is what you really want
+- Bad **compromise** beteen performance and realism
+- All the **downsides of integration testing without most of the upsides**
 
 > If only we could integration test faster?! Then we could do it properly ....
 
@@ -239,10 +252,10 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 
 ---
 
-## Our Test Setup
+## Test Setup
 
 - **Docker Compose** for Elasticsearch, Valkey, and Postgres
-  - Docker Compose for gradle plugin
+  - Docker Compose plugin for gradle that runs before the tests
 - **Spring Boot** test context with API server & some test beans
 - Simple Kotlin tests
   - **junit 6**
@@ -707,8 +720,12 @@ class TestSchemaCreationService(
 - 🎲 **Randomize test data** Unique IDs prevent collisions
 - 🚫 **No Cleaning** Don’t clean between tests
 - 🔄 **Poll, don’t sleep** Check until stuff passes, instead of sleeping.
+  - Allows other threads to do productive things.
 - 🧩 **Embrace Flakiness** These are the bugs you want to find. Deflakification makes your system better.
+  - Running with more threads than your CPU invites failures you’ll want to catch early.
+  - Abuse your tests as a stress test and find the breaking points.
 - 💡**DRY Tests** Don't Repeat Yourself. Avoid copy paste. Invest time in writing shorter tests.
+  - Makes it easier to add more tests
 
 > This works on any kind of backend system.
 ---
@@ -1153,7 +1170,7 @@ jobs:
 - **I/O-bound != CPU-bound**: Even when each test “feels” heavy, most of the time is network or disk latency.
 - Parallelism **hides latency**: Blocked coroutines free CPU time for others.
 - **Use idle time** to run other tests.
-- Modern hardware is fast: if your CPU fan is idling, your laptop is **bored**.
+- Modern hardware is fast: if your CPU fan is idling: **Your laptop is bored!**.
 
 ![htop](htop.gif)
 
