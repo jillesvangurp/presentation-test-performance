@@ -1,4 +1,9 @@
-# FORMATION – Reveal.js Deck
+Presentation for the October 2025 Kotlin Meetup in Berlin.
+
+
+[View the slides](https://parallel-testing-2025.jillesvangurp.com)
+
+---
 
 A ready-to-run Reveal.js deck with a first pass at a brand theme.
 To use your real brand colors, replace `img/screenshot.jpg` with a capture of your site and tweak `css/theme/formation.css`.
@@ -9,7 +14,7 @@ To use your real brand colors, replace `img/screenshot.jpg` with a capture of yo
 bunx serve .
 ```
 
-And then open [http://localhost:3000](the slides)
+And then open [the slides](http://localhost:3000)
 
 Or just open `index.html` in a browser. Reveal.js loads via the CDN.
 
