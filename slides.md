@@ -1193,6 +1193,7 @@ jobs:
 - 🧩 **Better code quality** — forces testable, thread-safe, stateless design
 - 💰 **Lower CI costs** — faster runs = less compute time billed (0$/month)
 - 💰 **Zero cost for extra tests** - new tests don't really affect test run time; plenty of idle time left.
+- 🤖 **Faster AI Coding Feedbackloops** — slow enough as it is.
 
 ---
 
