@@ -81,6 +81,32 @@
     Reveal.on('ready', updateSlideCount);
     Reveal.on('slidechanged', updateSlideCount);
   </script>
+
+
+<script type="module">
+  import QRCode from "https://esm.sh/qrcode@1.5.4";
+
+  async function renderSlideQRCodes(slide) {
+    if (slide.dataset.qrRendered) return;
+    slide.dataset.qrRendered = "true";
+
+    // markdown links
+    for (const link of slide.querySelectorAll("a[href^='http']")) {
+      if (link.closest(".qrcode-container")) continue;
+      const href = link.getAttribute("href");
+      const svg = await QRCode.toString(href, { type: "svg", margin: 1, width: 150 });
+      const qr = document.createElement("div");
+      qr.classList.add("qrcode-inline");
+      qr.innerHTML = `${svg}<div class="qrcode-link"><a href="${href}" target="_blank">${link.textContent}</a></div>`;
+      link.insertAdjacentElement("afterend", qr);
+      link.remove();
+    }
+  }
+
+  Reveal.on("ready", e => renderSlideQRCodes(e.currentSlide));
+  Reveal.on("slidechanged", e => renderSlideQRCodes(e.currentSlide));
+</script>
+
 </body>
 
 </html>

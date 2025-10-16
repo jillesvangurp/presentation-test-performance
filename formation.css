@@ -140,3 +140,31 @@ strong {
 .reveal .slide-number {
   display: none !important;
 }
+
+.qrcode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1em 0;
+}
+
+.qrcode-container svg {
+  height: 128px;
+  width: 128px;
+}
+
+.qrcode-link {
+  margin-top: 0.5em;
+  font-size: 0.8em;
+  text-align: center;
+  word-break: break-all;
+}
+
+.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+}

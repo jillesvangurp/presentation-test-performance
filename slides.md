@@ -16,13 +16,13 @@
 ---
 ### Whoami
 
-- **@jillesvangurp**, www.jillesvangurp.com, tryformation.com
 - CTO of FORMATION Gmbh
   > Maps for Factories & Logistics.
 - Search & Maps, Backend, Full stack Kotlin, ....
 - Using Java between **1995-2017**, Kotlin **2018-now**
   - Yes, I'm a bit "senior"
 - Dutch. 16 years in Berlin, Finland & Sweden before that.
+- Globally unique handle **@jillesvangurp** (github,x,etc.)
 
 ---
 
@@ -101,8 +101,11 @@ loading="lazy">
 They used copy-pasted data and IDs ... Completely **stupid and frustrating**.
   - That got me thinking about **doing something smarter**.
   - I had **plenty of time to think** waiting for this shit.
-- I wrote about this a few times. [2016 Article](https://www.jillesvangurp.com/blog/2016-05-25-functional-tests-and-flakyness.html), [2021 Article](https://dev.to/jillesvangurp/improving-build-speeds-262a)
-- I've been doing this for ten years now in two companies. Once you learn how to make parallel test work, it becomes **second nature**.
+- Once you learn how to make parallel test work, it becomes **second nature**.
+
+| | |
+|------|------|
+| [2016 Article](https://www.jillesvangurp.com/blog/2016-05-25-functional-tests-and-flakyness.html) | [2021 Article](https://dev.to/jillesvangurp/improving-build-speeds-262a) |
 
 ---
 
@@ -125,19 +128,12 @@ But before we do that a little intro on testing ...
 > A **unit test** verifies the behavior of a single, isolated piece of code—typically a function or class—under controlled conditions.
 > It runs quickly, avoids external dependencies like databases or APIs, and ensures that logic works as expected in isolation.
 
-- [Wikipedia – Unit testing](https://en.wikipedia.org/wiki/Unit_testing)
-- [BrowserStack – Types of Testing](https://www.browserstack.com/guide/types-of-testing)
-- [Martin Fowler – Unit Test](https://martinfowler.com/bliki/UnitTest.html)
 ---
 
 ## Integration Test
 
 > An **integration test** verifies that multiple components of a system work together correctly.
 > It exercises real dependencies such as databases, APIs, or messaging systems, and focuses on validating end-to-end behavior rather than isolated logic.
-
-- [Wikipedia – Integration testing](https://en.wikipedia.org/wiki/Integration_testing)
-- [Atlassian – Types of Software Testing](https://www.atlassian.com/continuous-delivery/software-testing/types-of-software-testing)
-- [Software Testing Fundamentals – Integration Testing](https://softwaretestingfundamentals.com/integration-testing/)
 
 ---
 
@@ -1184,13 +1180,13 @@ jobs:
 
 ## Limitations
 
-- Not everyone has a fast laptop - been there done that. It sucks.
-- **CI** on the cheap means dealing with slooooow vms. Once our build it 20+ minutes is when I used my own vm.
-- Randomization can also mean **hard to reproduce failures**
-- **Legacy** tests can be a blocker
-- Test order, number of CPUs, etc. can make seemingly stable tests **flaky** suddenly
-- Junit caps number of threads :-( to number of CPU cores
-- You need to **keep some CPU available** for your DB, Elasticsearch, and API server
+- 💻 Not everyone has a fast laptop — been there done that. It sucks 😭
+- 🐢 **CI** on the cheap means dealing with slooooow VMs. Once our build took 20+ minutes ⏳ before I used my own VM 🧠
+- 🎲 Randomization can also mean **hard to reproduce failures** 💥
+- 🧱 **Legacy** tests can be a blocker
+- 🎢 Test order, number of CPUs, etc. can make seemingly stable tests **flaky** suddenly
+- 🧮 JUnit caps number of threads to number of CPU cores
+- 🧩 You need to **keep some CPU available** for your DB, Elasticsearch, and API server ⚙️
 
 ---
 
@@ -1208,15 +1204,15 @@ jobs:
 
 ## Challenges
 
-- Heisenbugs & flakiness
-  - Finding these is why you test. Dealing with them is annoying
-  - Reproducing bugs isn't always easy - but **knowing you have** them is key
-  - **It get's better** over time.
-- You need to **design and plan** for concurrent testing. You won't get it for free.
-- If you have a lot of hardcoded ids, names, etc in your tests:
-  - Removing those is a bit of work
-- **Copy/paste reuse** makes your tests hard to maintain
-- CI is still slowish - we fixed it with a fast vm
+- 👻 **Heisenbugs & flakiness**
+  - 🧠 Finding these is why you test — dealing with them is annoying
+  - 🔁 Reproducing bugs isn't always easy — but **knowing you have them** is key
+  - 🌈 **It gets better** over time
+- 🧩 You need to **design and plan** for concurrent testing — you won’t get it for free
+- 🪪 If you have a lot of **hardcoded IDs, names**, etc. in your tests
+  - ✏️ Removing those takes some work
+- 📋 **Copy/paste reuse** makes your tests hard to maintain
+- 🐢 **CI is still slowish** — we fixed it with a fast VM 🚀
 
 ### Many solutions to this, this should not stop you
 
@@ -1224,14 +1220,15 @@ jobs:
 
 ## Effective Testing is a mindset
 
-- **Design your system** to be easy to test. This makes you a better engineer.
-- Don't accept slow tests, **do something** about it
-- Remove excuses to **add tests**
-- Running tests quickly is a great excuse to get a **nice fast laptop**
-  - Think about that the next time you wait for a build to finish.
-- Time is money. **Your time** is your money (or your boss). You could be doing more fun things than watching paint dry.
-- **Flow state** is hard to achieve and easy to lose.
-- M4 Max with 48GB = **105 EURO/Month**. Other laptops are available.
+- 🧠 **Design your system** to be easy to test — it makes you a better engineer
+- ⚡ Don't accept slow tests — **do something** about it
+- 🧪 Remove excuses to **add more tests**
+- 💻 Running tests quickly is a great excuse to get a **nice fast laptop**
+  - ⏳ Think about that the next time you wait for a build to finish
+- 💰 Time is money — **your time** is your money (or your boss’s)
+  - You could be doing more fun things than watching paint dry 🎨
+- 🌊 **Flow state** is hard to achieve and easy to lose
+- 💪 M4 Max with 48 GB = **105 €/month** — other laptops are available 😁
 
 > I run tests about 40 times per day. Now that I can actually do that. This is **priceless**.
 
@@ -1239,11 +1236,24 @@ jobs:
 
 ## Questions?!
 
-- 🧑‍💻 jillesvangurp on GitHub, X, etc.
+- **jillesvangurp** on GitHub, X, etc.
+-
 - 🚫 we are **not yet** hiring
-  - 💻 multiplatform Kotlin
-  - ⚙️ Kotlin / Spring Boot
-  - 🎨 Kotlin-JS / frontend
-  - 📦 Kotlin multiplatform libraries
-  - ❤️ ... we love Kotlin
+  - multiplatform Kotlin
+  - Kotlin / Spring Boot
+  - Kotlin-JS / frontend
+  - Kotlin multiplatform libraries
+  - ... we love Kotlin
+
+[Slides](https://parallel-testing-2025.jillesvangurp.com)
+
+---
+
+## Links
+
+| | |
+|------|------|
+| [Website](https://www.jillesvangurp.com) | [FORMATION](https://tryformation.com)|
+| [@jillesvangurp@mastodon.world](https://mastodon.world/@jillesvangurp) | [@jillesvangurp.bsky.social](https://bsky.app/profile/did:plc:v3nrxedhxhpuh67qcpu7l2x5) |
+
 
