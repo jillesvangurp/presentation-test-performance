@@ -502,7 +502,7 @@ fun before() {
 
 ---
 
-## DB && Elasticsearch Initialization
+## DB & Elasticsearch Initialization
 
 ```kotlin [14-14|29-31|32-32|34-39|75-77|134-134|168-168|171-180]
 private val logger = KotlinLogging.logger {}
