@@ -188,7 +188,7 @@ But before we do that a little intro on testing ...
 
 ---
 
-## From Unit to Integration test
+## Spectrum From Unit to Integration test
 
 ### Pure Unit test
 
