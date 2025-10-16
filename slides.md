@@ -172,7 +172,7 @@ But before we do that a little intro on testing ...
   - Unit is small enough that you can **test permutations** of input
 - Integration testing is about realism
   - **Forget about test coverage**
-  - The permutations of possible inputs is **not computable**
+  - The permutations of possible inputs are **not computable**
   - Next best thing: **Realism: test things that actual users do**
 
 ---
@@ -186,7 +186,7 @@ But before we do that a little intro on testing ...
 - **Fake/mock as little** as possible
 - **Touch as much** of your system as you can.
 - **Don't waste a good scenario**
-  - add more to them.
+  - add detail, what else would a user do, assert stuff
 - Test **side effects**, trigger **feature interactions**, and the **unexpected stuff** that happens in the real world.
 - Test **regressions**. Reproduce things that went wrong for customers. And then ensure they stay fixed.
 
@@ -266,7 +266,7 @@ BDD, Blackbox test, Performance test, **Scenario Test**, Load test, Stress Test,
 - Simple Kotlin tests
   - **junit 6**
   - **kotest-assertions**
-    - Nice idomatic kotlin assertions
+    - Nice idiomatic kotlin assertions
       - `(40 + 2) shouldBe 42`
     - Support for async stuff
       - `eventually {...}` Runs until it passes
@@ -728,8 +728,8 @@ class TestSchemaCreationService(
 - 🔄 **Poll, don’t sleep** Check until stuff passes, instead of sleeping.
   - Allows other threads to do productive things.
 - 🧩 **Embrace Flakiness** These are the bugs you want to find. Deflakification makes your system better.
-  - Running with more threads than your CPU invites failures you’ll want to catch early.
-  - Abuse your tests as a stress test and find the breaking points.
+  - Temporarily run with more threads than your CPU: **invites failures you want to catch early**.
+  - **Abuse your tests as a stress test** and find the breaking points.
 - 💡**DRY Tests** Don't Repeat Yourself. Avoid copy paste. Invest time in writing shorter tests.
   - Makes it easier to add more tests
 

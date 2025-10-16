@@ -1,7 +1,7 @@
 rm -rf dist
 mkdir -p dist
 
-cp *html *webp *png *jpg *svg *css *md dist
+cp *html *webp *png *jpg *svg *css *gif *md dist
 
 if [ -f "$HOME/.cloudflare" ]; then
   source "$HOME/.cloudflare"
