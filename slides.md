@@ -65,20 +65,19 @@ loading="lazy">
 <section>
   <div style="display: flex; gap: 3em; justify-content: center; align-items: flex-start;">
     <ul>
-      <li>Interrupted flow</li>
-      <li>Procrastination</li>
-      <li>Time is $$$</li>
-      <li>Context switches</li>
+      <li>💥 Interrupted flow</li>
+      <li>😴 Procrastination</li>
+      <li>💸 Time is $$$</li>
+      <li>🔄 Context switches</li>
     </ul>
     <ul>
-      <li>Less frequent commits</li>
-      <li>YOLO! Don't run tests before committing</li>
-      <li>Long feedback cycles</li>
-      <li>...</li>
+      <li>📉 Less frequent commits</li>
+      <li>🤷 YOLO! Don’t run tests before committing</li>
+      <li>🐢 Long feedback cycles</li>
+      <li>…</li>
     </ul>
   </div>
 </section>
-
 ---
 
 ## Goal
