@@ -168,3 +168,7 @@ strong {
   text-align: center;
   gap: 1rem;
 }
+
+@keyframes blink {
+  50% { opacity: 0; }
+}

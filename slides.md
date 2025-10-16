@@ -19,7 +19,8 @@
 - CTO of FORMATION Gmbh
   > Maps for Factories & Logistics.
 - Search & Maps, Backend, Full stack Kotlin, ....
-- Using Java between **1995-2017**, Kotlin **2018-now**
+- Occasional consultant on Elasticsearch/Opensearch
+- Using Java **1995-2017**, Kotlin **2018-now**
   - Yes, I'm a bit "senior"
 - Dutch. 16 years in Berlin, Finland & Sweden before that.
 - Globally unique handle **@jillesvangurp** (github,x,etc.)
@@ -194,12 +195,6 @@ But before we do that a little intro on testing ...
 Logic test, mock test,
 
 ### ~~Somewhere in between~~ <span style="font-size: 3rem; animation: blink 1s step-start infinite;"> Half-assed integration test</span>
-
-<style>
-@keyframes blink {
-  50% { opacity: 0; }
-}
-</style>
 
 Whitebox test, database testing with sqlite, using fakes, ...
 
